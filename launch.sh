@@ -8,13 +8,13 @@ export BIGDL_HOME=/afs/cern.ch/work/m/migliori/public/BDLtest/bigDL
 export PYSPARK_PYTHON=/afs/cern.ch/work/m/migliori/public/anaconda2/bin/python
 
 ${BIGDL_HOME}/bin/spark-submit-with-bigdl.sh \
---master yarn \
---conf spark.driver.memory=5G \
+--master local[32] \
+--conf spark.driver.memory=125G \
 --conf spark.driver.cores=4 \
 --conf spark.executor.instances=10 \
 --conf spark.executor.cores=4 \
 --conf spark.executor.memory=14G \
-HLFclassifier.py \
+GRUclassifier.py \
 --batchMultiplier 64 \
 --numEpochs 1 \
 --dataset file:///afs/cern.ch/work/m/migliori/test20k.parquet \
@@ -22,4 +22,4 @@ HLFclassifier.py \
 --logDir bigdl_summaries \
 --saveModel True \
 --modelDir /afs/cern.ch/work/m/migliori/public/BDLtest/pythonScripts/models \
---test True 
+--test False 

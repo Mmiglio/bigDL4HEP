@@ -14,6 +14,7 @@ def loadParquet(spark, filePath, columns):
 
 def createSample(df, featureCol, labelCol):
     rdd = df.select([featureCol, labelCol]) \
+            .rdd \
             .map(lambda row: Sample.from_ndarray(
                 np.asarray(row.__getitem__(featureCol)),
                 np.asarray(row.__getitem__(labelCol)) + 1
@@ -56,7 +57,7 @@ def buildOptimizer(model, trainRDD, batchSize,
 def train(spark, args):
     
     sc=spark.sparkContext
-    featureCol = 'GRUinput'
+    featureCol = 'GRU_input'
     labelCol = 'encoded_label'
     numExecutors = int(sc._conf.get('spark.executor.instances'))
     exeCores = int(sc._conf.get('spark.executor.cores'))
@@ -69,7 +70,7 @@ def train(spark, args):
     model = buildGRUModel()
 
     batchSize = args.batchMultiplier * numExecutors * exeCores
-    appName = args.appName + "_exe:{}_cores:{}".format(numExecutors, exeCores)
+    appName = args.jobName + "_{}exe_{}cores".format(numExecutors, exeCores)
     optimizer = buildOptimizer(
         model = model,
         trainRDD = trainRDD,
@@ -99,27 +100,27 @@ def train(spark, args):
     if args.saveModel == True:
         model.saveModel(
             modelPath = args.modelDir + '/' + appName + '.bigdl',
-            weightPath = args.modelDir + '/' + appName + 'bin',
+            weightPath = args.modelDir + '/' + appName + '.bin',
             over_write = True
         )
  
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batchMultiplier', type=int, nargs=1)
-    parser.add_argument('--numEpochs', type=int, nargs=1)
-    parser.add_argument('--dataset', type=str, nargs=1)
-    parser.add_argument('--jobName', type=str, nargs=1)
-    parser.add_argument('--logDir', type=str, nargs=1)
+    parser.add_argument('--batchMultiplier', type=int)
+    parser.add_argument('--numEpochs', type=int)
+    parser.add_argument('--dataset', type=str)
+    parser.add_argument('--jobName', type=str)
+    parser.add_argument('--logDir', type=str)
     parser.add_argument('--saveModel', type=bool, nargs='?', const=False)
     parser.add_argument('--modelDir', type=str, nargs='?', const='~/')
     parser.add_argument('--test', type=bool, nargs='?', const=True)
 
     args = parser.parse_args()
-
+    
     ## Create SparkContext and SparkSession
     sc = SparkContext(
-        appName="HLFclassifier",
+        appName="GRUclassifier",
         conf=create_spark_conf())
     spark = SQLContext(sc).sparkSession
 
@@ -128,7 +129,9 @@ if __name__ == "__main__":
     show_bigdl_info_logs()
     init_engine()
 
-    train(sc, args)
+    train(spark, args)
+
+    print('Done! So long and thanks for all the fish.')
 
     
 
