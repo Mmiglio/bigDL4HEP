@@ -14,12 +14,13 @@ ${BIGDL_HOME}/bin/spark-submit-with-bigdl.sh \
 --conf spark.executor.instances=10 \
 --conf spark.executor.cores=4 \
 --conf spark.executor.memory=14G \
-GRUclassifier.py \
---batchMultiplier 64 \
+trainClassifier.py \
+--model gru \
+--batchMultiplier 32 \
 --numEpochs 1 \
 --dataset file:///afs/cern.ch/work/m/migliori/test20k.parquet \
 --jobName firstTest \
 --logDir bigdl_summaries \
 --saveModel True \
 --modelDir /afs/cern.ch/work/m/migliori/public/BDLtest/pythonScripts/models \
---test False 
+--saveTime True 
