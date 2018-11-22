@@ -84,7 +84,9 @@ def train(spark, args):
 
     if args.saveTime == True: 
         with open(args.model+'Times.csv', 'a') as file:
-            file.write("{},{},{},{:.2f}\n".format(
+            file.write("{},{},{},{},{},{:.2f}\n".format(
+                args.batchMultiplier,
+                batchSize,
                 exeCores,
                 numExecutors,
                 args.numEpochs,
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, nargs='?', const='gru',
                         help="Choose a model between gru/..")
-    parser.add_argument('--batchMultiplier', type=int, nargs='?', const=32)
+    parser.add_argument('--batchMultiplier', type=int, nargs='?', const=16)
     parser.add_argument('--numEpochs', type=int, nargs='?', const=50)
     parser.add_argument('--dataset', type=str)
     parser.add_argument('--jobName', type=str)
