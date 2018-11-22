@@ -65,7 +65,7 @@ def train(spark, args):
     trainRDD = createSample(trainDF, featureCol, labelCol)
 
     batchSize = args.batchMultiplier * numExecutors * exeCores
-    appName = args.jobName + "_{}exe_{}cores".format(numExecutors, exeCores)
+    appName = args.jobName + "_" + args.model + "_{}exe_{}cores".format(numExecutors, exeCores)
     optimizer = buildOptimizer(
         model = model,
         trainRDD = trainRDD,
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     
     ## Create SparkContext and SparkSession
     sc = SparkContext(
-        appName="GRUclassifier",
+        appName="BDLclassifier",
         conf=create_spark_conf())
     spark = SQLContext(sc).sparkSession
 
