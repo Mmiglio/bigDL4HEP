@@ -57,7 +57,7 @@ def savePlot(plotDir, values, modelType):
     plt.legend(loc="lower right")
     plt.grid(b=True, which='major')
     plt.grid(b=True, which='minor')
-    plt.savefig(plotDir+'/auc.pdf')
+    plt.savefig(plotDir+'/roc.pdf')
 
 
 def inference(spark, args):

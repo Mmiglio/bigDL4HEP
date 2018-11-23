@@ -27,7 +27,7 @@ def buildOptimizer(model, trainRDD, batchSize,
         model = model,
         training_rdd = trainRDD,
         criterion = CategoricalCrossEntropy(),
-        optim_method = ParallelAdam(),
+        optim_method = Adam(),
         end_trigger = MaxEpoch(numEpochs),
         batch_size = batchSize   
     )
