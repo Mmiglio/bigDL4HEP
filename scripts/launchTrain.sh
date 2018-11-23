@@ -16,7 +16,7 @@ ${BIGDL_HOME}/bin/spark-submit-with-bigdl.sh \
 --conf spark.executor.memory=14G \
 trainClassifier.py \
 --model hlf \
---batchMultiplier 16 \
+--batchMultiplier 8 \
 --numEpochs 50 \
 --dataset hdfs://hadalytic/project/ML/data/train100k.parquet \
 --jobName firstTest \

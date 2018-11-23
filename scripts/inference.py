@@ -82,7 +82,7 @@ def inference(spark, args):
             featureCol = 'HLF_input'
             featureSize = [14] 
         elif 'gru' in model:
-            models.append('GRU')
+            models.append('Particle-sequence')
             featureCol = 'GRU_input'
             featureSize = [801,19]
         else:

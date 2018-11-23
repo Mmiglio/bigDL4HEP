@@ -12,6 +12,6 @@ ${BIGDL_HOME}/bin/spark-submit-with-bigdl.sh \
 --conf spark.driver.memory=125G \
 inference.py \
 --testDataset hdfs://hadalytic/project/ML/data/test20k.parquet \
---models hlfHadalytic_hlf_10exe_6cores gruHadalytic_gru_11exe_6cores \
+--models hlfHadalytic_hlf_10exe_6cores Adam_8multiplier_60epochs_Hadalytic_gru_11exe_6cores \
 --modelsDir file:///afs/cern.ch/work/m/migliori/public/BDLtest/pythonScripts/models \
 --plotDir /afs/cern.ch/work/m/migliori/public/BDLtest/pythonScripts/plots 
