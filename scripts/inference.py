@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 from bigdl.util.common import *
 from bigdl.nn.layer import Model
 from bigdl.dlframes.dl_classifier import DLModel
@@ -13,9 +15,17 @@ sns.set(style="darkgrid")
 def loadParquet(spark, filePath, feature, label):
     df = spark.read.format('parquet') \
             .load(filePath) \
-            .select([feature, label]) \
-            .withColumnRenamed(feature, 'features')
+            .select([feature, label])
     return df
+
+def createSample(df, featureCol, labelCol):
+    rdd = df.select([featureCol, labelCol]) \
+            .rdd \
+            .map(lambda row: Sample.from_ndarray(
+                np.asarray(row.__getitem__(featureCol)),
+                np.asarray(row.__getitem__(labelCol)) + 1
+            ))
+    return rdd
 
 def loadModel(modelPath):
     model = Model.loadModel(modelPath=modelPath+'.bigdl', weightPath=modelPath+'.bin')
@@ -30,13 +40,14 @@ def computeAUC(y_true, y_pred):
         fpr[i], tpr[i], _ = roc_curve(y_true[:, i], y_pred[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
 
+    print("\t*AUC score for tt selector: {:.4f}\n\n".format(roc_auc[0]))
     return fpr,tpr,roc_auc 
 
 def savePlot(plotDir, values, modelType):
     plt.figure()
-    for fpr,tpr,roc_auc in values:
+    for (fpr,tpr,roc_auc),modelName in zip(values, modelType):
         plt.plot(fpr[0], tpr[0],
-            lw=2, label=modelType+' classifier (AUC) = %0.4f' % roc_auc[0])
+            lw=2, label=modelName+' classifier (AUC) = %0.4f' % roc_auc[0])
     plt.plot([0, 1], [0, 1], linestyle='--')
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
@@ -53,39 +64,49 @@ def inference(spark, args):
     
     ## Lists containing fpr, tpr, auc for each model
     results = []
+    models = []
 
     for model in args.models:
+
+        print("\n\nProcessing "+model)
+
+        ## Full path to the model
+        model = args.modelsDir + "/" +model
         ## Check the type of model
         featureCol = ''
         label = 'encoded_label'
         featureSize = None 
-        modelType = ''
 
         if 'hlf' in model:
-            modelType = 'HLF'
+            models.append('HLF')
             featureCol = 'HLF_input'
             featureSize = [14] 
         elif 'gru' in model:
-            modelType = 'GRU'
+            models.append('GRU')
             featureCol = 'GRU_input'
             featureSize = [801,19]
         else:
             sys.exit("Error, Invalid model type")
 
-        testDF = loadParquet(spark, model, featureCol, label)
+        print("\t*Loading test dataset")
+        testDF = loadParquet(spark, args.testDataset, featureCol, label)
+        testRDD = createSample(testDF,featureCol,label)
         model = loadModel(model)
-        predictor = DLModel(model=model, featureSize=featureSize)
-        predDF = predictor.transform(testDF)
+        print("\t*Predicting")
+        pred = model.predict(testRDD)
 
         ## Collect results
-        y_true = np.asarray(predDF.rdd \
-                    .map(lambda row: row.__getitem__(featureCol)) \
+        print("\t*Collecting results")
+        y_true = np.asarray(testDF.rdd \
+                    .map(lambda row: row.encoded_label) \
                     .collect())
-        y_pred = np.asarray(predDF.rdd \
-                    .map(lambda row: row.prediction) \
-                    .collect())
+        y_pred = np.asarray(pred.collect())
 
         results.append(computeAUC(y_true, y_pred))
+    
+    savePlot(args.plotDir, results, models)
+
+
 
 if __name__ == "__main__":
 
@@ -94,6 +115,8 @@ if __name__ == "__main__":
                         help ='path to the test dataset')
     parser.add_argument('--models', nargs='+', type=str,
                         help='List of models to compare')
+    parser.add_argument('--modelsDir', type=str,
+                        help='Path to the directory containing models')
     parser.add_argument('--plotDir', type=str,
                         help='Directory where to store plots')
     

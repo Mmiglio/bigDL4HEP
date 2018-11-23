@@ -27,9 +27,9 @@ def buildOptimizer(model, trainRDD, batchSize,
         model = model,
         training_rdd = trainRDD,
         criterion = CategoricalCrossEntropy(),
-        optim_method = Adam(),
+        optim_method = ParallelAdam(),
         end_trigger = MaxEpoch(numEpochs),
-        batch_size = batchSize
+        batch_size = batchSize   
     )
 
     ## Remove the already existing job logs
