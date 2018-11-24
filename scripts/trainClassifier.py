@@ -6,17 +6,17 @@ import numpy as np
 import argparse
 import time
 
-def loadParquet(spark, filePath, columns):
+def loadParquet(spark, filePath, featureCol, labelCol):
     df = spark.read.format('parquet') \
             .load(filePath) \
-            .select(columns) 
+            .select(featureCol + [labelCol]) \
+            .sample(False, 0.1) 
     return df
 
 def createSample(df, featureCol, labelCol):
-    rdd = df.select([featureCol, labelCol]) \
-            .rdd \
+    rdd = df.rdd \
             .map(lambda row: Sample.from_ndarray(
-                np.asarray(row.__getitem__(featureCol)),
+                [np.asarray(row.__getitem__(feature)) for feature in featureCol],
                 np.asarray(row.__getitem__(labelCol)) + 1
             ))
     return rdd
@@ -27,7 +27,7 @@ def buildOptimizer(model, trainRDD, batchSize,
         model = model,
         training_rdd = trainRDD,
         criterion = CategoricalCrossEntropy(),
-        optim_method = Adam(learningrate=0.003),
+        optim_method = Adam(),
         end_trigger = MaxEpoch(numEpochs),
         batch_size = batchSize   
     )
@@ -50,17 +50,20 @@ def train(spark, args):
     exeCores = int(sc._conf.get('spark.executor.cores'))
     
     labelCol = 'encoded_label'
-    if args.model == "gru":
-        featureCol = 'GRU_input'
+    if args.model == 'gru':
+        featureCol = ['GRU_input']
         model = models.GRUModel()
-    elif args.model == "hlf":
-        featureCol = 'HLF_input'
+    elif args.model == 'hlf':
+        featureCol = ['HLF_input']
         model = models.HLFmodel()
+    elif args.model == 'inclusive':
+        featureCol = ['GRU_input', 'HLF_input']
+        model = models.InclusiveModel()
     else:
         sys.exit("Error, insert a valid model!")
-
+   
     ## Load the parquet
-    trainDF = loadParquet(spark, args.dataset, [featureCol, labelCol])
+    trainDF = loadParquet(spark, args.dataset, featureCol, labelCol)
     ## Convert in into an RDD of Sample
     trainRDD = createSample(trainDF, featureCol, labelCol)
 
