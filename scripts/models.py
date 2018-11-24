@@ -14,6 +14,7 @@ def InclusiveModel():
     )
 
     gruBranch = Sequential() \
+                .add(Masking(0.0)) \
                 .add(recurrent) \
                 .add(Select(2,-1)) \
                 .add(Dropout(0.5))
