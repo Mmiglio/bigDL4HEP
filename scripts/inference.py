@@ -72,9 +72,8 @@ def inference(spark, args):
         ## Full path to the model
         model = args.modelsDir + "/" +model
         ## Check the type of model
-        featureCol = ''
+        featureCol = None
         label = 'encoded_label'
-        featureSize = None 
 
         if 'hlf' in model:
             models.append('HLF')
@@ -83,7 +82,7 @@ def inference(spark, args):
             models.append('Particle-sequence')
             featureCol = ['GRU_input']
         elif 'inclusive' in model:
-            models.append('Inclusive-classifier')
+            models.append('Inclusive')
             featureCol = ['GRU_input', 'HLF_input']
         else:
             sys.exit("Error, Invalid model type")
