@@ -9,8 +9,7 @@ import time
 def loadParquet(spark, filePath, featureCol, labelCol):
     df = spark.read.format('parquet') \
             .load(filePath) \
-            .select(featureCol + [labelCol]) \
-            .sample(False, 0.1) 
+            .select(featureCol + [labelCol])
     return df
 
 def createSample(df, featureCol, labelCol):
@@ -21,13 +20,13 @@ def createSample(df, featureCol, labelCol):
             ))
     return rdd
 
-def buildOptimizer(model, trainRDD, batchSize,
+def buildOptimizer(model, trainRDD, valRDD, batchSize,
                    numEpochs, appName, logDir):
     optimizer = Optimizer(
         model = model,
         training_rdd = trainRDD,
         criterion = CategoricalCrossEntropy(),
-        optim_method = Adam(),
+        optim_method = Adam(learningrate=0.002, learningrate_decay=0.0002, epsilon=9e-8),
         end_trigger = MaxEpoch(numEpochs),
         batch_size = batchSize   
     )
@@ -39,8 +38,19 @@ def buildOptimizer(model, trainRDD, batchSize,
     except:
         pass
 
+    if valRDD != False:
+        optimizer.set_validation(
+            batch_size = batchSize,
+            val_rdd = valRDD,
+            trigger = EveryEpoch(),
+            val_method=[Loss(CategoricalCrossEntropy())]
+        )
+        valSummary = ValidationSummary(log_dir=logDir,app_name=appName)
+        optimizer.set_val_summary(valSummary)
+        
     trainSummary = TrainSummary(log_dir=logDir,app_name=appName)
     optimizer.set_train_summary(trainSummary)
+    
     return optimizer
 
 def train(spark, args):
@@ -59,7 +69,7 @@ def train(spark, args):
     elif args.model == 'inclusive':
         featureCol = ['GRU_input', 'HLF_input']
         model = models.InclusiveModel()
-    else:
+    else:   
         sys.exit("Error, insert a valid model!")
    
     ## Load the parquet
@@ -67,11 +77,20 @@ def train(spark, args):
     ## Convert in into an RDD of Sample
     trainRDD = createSample(trainDF, featureCol, labelCol)
 
+    if args.validation != 'False':
+        testDF = loadParquet(spark, args.validation, featureCol, labelCol)
+        testRDD = createSample(testDF, featureCol, labelCol)
+    else:
+        testRDD = False
+
     batchSize = args.batchMultiplier * numExecutors * exeCores
     appName = args.jobName + "_" + args.model + "_{}exe_{}cores".format(numExecutors, exeCores)
+    
+
     optimizer = buildOptimizer(
         model = model,
         trainRDD = trainRDD,
+        valRDD = testRDD,
         batchSize = batchSize,
         numEpochs = args.numEpochs,
         appName = appName,
@@ -85,6 +104,13 @@ def train(spark, args):
 
     print("\n\n Elapsed time: {:.2f}s\n\n".format(stop-start))
 
+    if args.saveModel == True:
+        model.saveModel(
+            modelPath = args.modelDir + '/' + appName + '.bigdl',
+            weightPath = args.modelDir + '/' + appName + '.bin',
+            over_write = True
+        )
+
     if args.saveTime == True: 
         with open(args.model+'Times.csv', 'a') as file:
             file.write("{},{},{},{},{},{:.2f}\n".format(
@@ -96,13 +122,6 @@ def train(spark, args):
                 stop-start
                 )
             )
-
-    if args.saveModel == True:
-        model.saveModel(
-            modelPath = args.modelDir + '/' + appName + '.bigdl',
-            weightPath = args.modelDir + '/' + appName + '.bin',
-            over_write = True
-        )
  
 if __name__ == "__main__":
 
@@ -112,6 +131,8 @@ if __name__ == "__main__":
     parser.add_argument('--batchMultiplier', type=int, nargs='?', const=16)
     parser.add_argument('--numEpochs', type=int, nargs='?', const=50)
     parser.add_argument('--dataset', type=str)
+    parser.add_argument('--validation', type=str, nargs='?', const='False',
+                        help='False=No validation, otherwise give the path to the dataset')
     parser.add_argument('--jobName', type=str)
     parser.add_argument('--logDir', type=str,
                         help="Directory containing logs,losses and throughputs")

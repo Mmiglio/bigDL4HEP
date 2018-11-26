@@ -12,17 +12,16 @@ import sys
 
 sns.set(style="darkgrid")
 
-def loadParquet(spark, filePath, feature, label):
+def loadParquet(spark, filePath, featureCol, label):
     df = spark.read.format('parquet') \
             .load(filePath) \
-            .select([feature, label])
+            .select(featureCol + [label])
     return df
 
 def createSample(df, featureCol, labelCol):
-    rdd = df.select([featureCol, labelCol]) \
-            .rdd \
+    rdd = df.rdd \
             .map(lambda row: Sample.from_ndarray(
-                np.asarray(row.__getitem__(featureCol)),
+                [np.asarray(row.__getitem__(feature)) for feature in featureCol],
                 np.asarray(row.__getitem__(labelCol)) + 1
             ))
     return rdd
@@ -79,12 +78,13 @@ def inference(spark, args):
 
         if 'hlf' in model:
             models.append('HLF')
-            featureCol = 'HLF_input'
-            featureSize = [14] 
+            featureCol = ['HLF_input']
         elif 'gru' in model:
             models.append('Particle-sequence')
-            featureCol = 'GRU_input'
-            featureSize = [801,19]
+            featureCol = ['GRU_input']
+        elif 'inclusive' in model:
+            models.append('Inclusive-classifier')
+            featureCol = ['GRU_input', 'HLF_input']
         else:
             sys.exit("Error, Invalid model type")
 

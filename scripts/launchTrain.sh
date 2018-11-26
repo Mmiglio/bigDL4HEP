@@ -15,11 +15,12 @@ ${BIGDL_HOME}/bin/spark-submit-with-bigdl.sh \
 --conf spark.executor.cores=4 \
 --conf spark.executor.memory=14G \
 trainClassifier.py \
---model hlf \
---batchMultiplier 8 \
---numEpochs 50 \
+--model inclusive \
+--batchMultiplier 32 \
+--numEpochs 70 \
 --dataset hdfs://hadalytic/project/ML/data/train100k.parquet \
---jobName firstTest \
+--validation hdfs://hadalytic/project/ML/data/test20k.parquet \
+--jobName adam_lr2_decay2_NODropout_BatchNormal_batch32_70epochs \
 --logDir bigdl_summaries \
 --saveModel True \
 --modelDir /afs/cern.ch/work/m/migliori/public/BDLtest/pythonScripts/models \
