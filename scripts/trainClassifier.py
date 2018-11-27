@@ -6,10 +6,16 @@ import numpy as np
 import argparse
 import time
 
-def loadParquet(spark, filePath, featureCol, labelCol):
-    df = spark.read.format('parquet') \
+def loadParquet(spark, filePath, featureCol, labelCol, sample, frac):
+    if sample:
+        df = spark.read.format('parquet') \
             .load(filePath) \
-            .select(featureCol + [labelCol])
+            .select(featureCol + [labelCol]) \
+            .sample(False, frac, 42)
+    else:
+        df = spark.read.format('parquet') \
+            .load(filePath) \
+            .select(featureCol + [labelCol])    
     return df
 
 def createSample(df, featureCol, labelCol):
@@ -73,12 +79,17 @@ def train(spark, args):
         sys.exit("Error, insert a valid model!")
    
     ## Load the parquet
-    trainDF = loadParquet(spark, args.dataset, featureCol, labelCol)
+    if args.frac != 1:
+        sampleDF = True
+    else:
+        sampleDF = False
+
+    trainDF = loadParquet(spark, args.dataset, featureCol, labelCol, sample=sampleDF, frac=args.frac)
     ## Convert in into an RDD of Sample
     trainRDD = createSample(trainDF, featureCol, labelCol)
 
     if args.validation != 'False':
-        testDF = loadParquet(spark, args.validation, featureCol, labelCol)
+        testDF = loadParquet(spark, args.validation, featureCol, labelCol, sample=False, frac=args.frac)
         testRDD = createSample(testDF, featureCol, labelCol)
     else:
         testRDD = False
@@ -131,6 +142,8 @@ if __name__ == "__main__":
     parser.add_argument('--batchMultiplier', type=int, nargs='?', const=16)
     parser.add_argument('--numEpochs', type=int, nargs='?', const=50)
     parser.add_argument('--dataset', type=str)
+    parser.add_argument('--frac', type=float, nargs='?', const=1,
+                        help='fraction of the dataset to be used')
     parser.add_argument('--validation', type=str, nargs='?', const='False',
                         help='False=No validation, otherwise give the path to the dataset')
     parser.add_argument('--jobName', type=str)

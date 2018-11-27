@@ -102,6 +102,8 @@ def inference(spark, args):
         y_pred = np.asarray(pred.collect())
 
         results.append(computeAUC(y_true, y_pred))
+
+        del y_true, y_pred  
     
     savePlot(args.plotDir, results, models)
 
