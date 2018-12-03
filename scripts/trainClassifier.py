@@ -7,6 +7,7 @@ import argparse
 import time
 
 def loadParquet(spark, filePath, featureCol, labelCol, sample, frac):
+    ## If frac!=0 sample the dataframe, otherwise return the full df
     if sample:
         df = spark.read.format('parquet') \
             .load(filePath) \
