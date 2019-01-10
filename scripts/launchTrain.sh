@@ -18,7 +18,7 @@ ${BIGDL_HOME}/bin/spark-submit-with-bigdl.sh \
 --conf spark.dynamicallocation.enabled=false \
 --conf spark.yarn.access.hadoopFileSystems=hadalytic \
 --conf "spark.metrics.conf.*.sink.graphite.class"="org.apache.spark.metrics.sink.GraphiteSink" \
---conf "spark.metrics.conf.*.sink.graphite.host"=migliori-kafka \
+--conf "spark.metrics.conf.*.sink.graphite.host"=HOST-IP \
 --conf "spark.metrics.conf.*.sink.graphite.port"=2003 \
 --conf "spark.metrics.conf.*.sink.graphite.period"=10 \
 --conf "spark.metrics.conf.*.sink.graphite.unit"=seconds \
